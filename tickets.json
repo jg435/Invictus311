@@ -1,0 +1,14 @@
+[
+  {
+    "case_id": "BOS-16268",
+    "type": "pothole",
+    "location": "Boston Common Area",
+    "urgency": "high",
+    "summary": "There's a big pothole on Beacon St near the State House",
+    "department": "Public Works",
+    "status": "OPEN",
+    "channel": "telegram",
+    "reported_by": "Kms",
+    "created_at": "2026-04-16T19:28:49.112396"
+  }
+]

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston 311 — Live Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2035;
+            --bg-card-hover: #1f2847;
+            --border: #2a3554;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --gradient-1: linear-gradient(135deg, #3b82f6, #06b6d4);
+            --gradient-2: linear-gradient(135deg, #8b5cf6, #ec4899);
+            --gradient-3: linear-gradient(135deg, #10b981, #06b6d4);
+            --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Animated background ─────────────────── */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-glow-1 { top: -200px; right: -100px; background: var(--accent-blue); }
+        .bg-glow-2 { bottom: -200px; left: -100px; background: var(--accent-purple); }
+
+        /* ── Layout ──────────────────────────────── */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ── Header ──────────────────────────────── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding: 20px 28px;
+            background: rgba(26, 32, 53, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 4px 20px rgba(59,130,246,0.3);
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .header-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+        }
+
+        /* ── Stats Grid ──────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: rgba(26, 32, 53, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px 24px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 14px 14px 0 0;
+        }
+
+        .stat-card:nth-child(1)::before { background: var(--gradient-1); }
+        .stat-card:nth-child(2)::before { background: var(--gradient-3); }
+        .stat-card:nth-child(3)::before { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+        .stat-card:nth-child(4)::before { background: var(--gradient-2); }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.yellow { color: var(--accent-yellow); }
+        .stat-value.purple { color: var(--accent-purple); }
+
+        .stat-sub {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ── Main Grid ───────────────────────────── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+
+        /* ── Ticket Feed ─────────────────────────── */
+        .panel {
+            background: rgba(26, 32, 53, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .panel-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(59,130,246,0.15);
+            color: var(--accent-blue);
+        }
+
+        .ticket-list {
+            max-height: 520px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .ticket-list::-webkit-scrollbar { width: 4px; }
+        .ticket-list::-webkit-scrollbar-track { background: transparent; }
+        .ticket-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .ticket-card {
+            padding: 16px 18px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            transition: all 0.25s ease;
+            cursor: default;
+            border: 1px solid transparent;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ticket-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border);
+        }
+
+        .ticket-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .ticket-id {
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: var(--accent-cyan);
+        }
+
+        .urgency-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .urgency-high {
+            background: rgba(239,68,68,0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+        .urgency-medium {
+            background: rgba(245,158,11,0.15);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245,158,11,0.3);
+        }
+        .urgency-low {
+            background: rgba(16,185,129,0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+
+        .ticket-summary {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.45;
+            margin-bottom: 8px;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .ticket-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ── Side Panels ─────────────────────────── */
+        .side-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-bar-group {
+            padding: 16px 24px;
+        }
+
+        .chart-bar {
+            margin-bottom: 12px;
+        }
+
+        .chart-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .chart-bar-label span:first-child {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .chart-bar-label span:last-child {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .chart-bar-track {
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease;
+        }
+
+        .fill-blue { background: var(--gradient-1); }
+        .fill-green { background: var(--gradient-3); }
+        .fill-yellow { background: linear-gradient(135deg, #f59e0b, #f97316); }
+        .fill-red { background: linear-gradient(135deg, #ef4444, #ec4899); }
+        .fill-purple { background: var(--gradient-2); }
+        .fill-cyan { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+
+        /* ── Activity log ────────────────────────── */
+        .activity-list {
+            padding: 12px 24px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+
+        .activity-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .activity-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .activity-text strong {
+            color: var(--text-primary);
+        }
+
+        .activity-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Channel Icons ───────────────────────── */
+        .channel-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 16px 24px;
+        }
+
+        .channel-card {
+            text-align: center;
+            padding: 14px 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .channel-card:hover {
+            border-color: var(--border);
+            background: rgba(255,255,255,0.06);
+        }
+
+        .channel-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+
+        .channel-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .channel-status {
+            font-size: 10px;
+            color: var(--accent-green);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .channel-status.coming {
+            color: var(--text-muted);
+        }
+
+        /* ── Responsive ──────────────────────────── */
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 12px; }
+            .container { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">311</div>
+                <div>
+                    <div class="header-title">Boston 311 Command Center</div>
+                    <div class="header-subtitle">AI-Powered Municipal Issue Tracking — Live Demo</div>
+                </div>
+            </div>
+            <div class="live-badge">
+                <div class="live-dot"></div>
+                LIVE
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Cases</div>
+                <div class="stat-value blue" id="stat-total">0</div>
+                <div class="stat-sub">All time via messaging</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Open Cases</div>
+                <div class="stat-value green" id="stat-open">0</div>
+                <div class="stat-sub">Awaiting department action</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">High Priority</div>
+                <div class="stat-value yellow" id="stat-high">0</div>
+                <div class="stat-sub">Requires immediate attention</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Response</div>
+                <div class="stat-value purple" id="stat-response">&lt;2s</div>
+                <div class="stat-sub">AI classification time</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Ticket Feed -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📋 Live Ticket Feed</div>
+                    <div class="panel-badge" id="feed-count">0 cases</div>
+                </div>
+                <div class="ticket-list" id="ticket-list">
+                    <div class="empty-state" id="empty-state">
+                        <div class="icon">📱</div>
+                        <p><strong>Waiting for reports...</strong><br>
+                        Send a message to the Telegram bot<br>
+                        to see tickets appear here in real-time!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panels -->
+            <div class="side-panels">
+                <!-- Channels -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📡 Intake Channels</div>
+                    </div>
+                    <div class="channel-grid">
+                        <div class="channel-card">
+                            <div class="channel-icon">💬</div>
+                            <div class="channel-name">Telegram</div>
+                            <div class="channel-status">● Active</div>
+                        </div>
+                        <div class="channel-card">
+                            <div class="channel-icon">📱</div>
+                            <div class="channel-name">SMS</div>
+                            <div class="channel-status coming">Coming</div>
+                        </div>
+                        <div class="channel-card">
+                            <div class="channel-icon">✉️</div>
+                            <div class="channel-name">Email</div>
+                            <div class="channel-status coming">Coming</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue Breakdown -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📊 Issue Breakdown</div>
+                    </div>
+                    <div class="chart-bar-group" id="issue-bars">
+                        <div class="empty-state" style="padding: 30px 0;">
+                            <p style="font-size: 12px;">Reports will appear here</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">⚡ Activity Log</div>
+                    </div>
+                    <div class="activity-list" id="activity-log">
+                        <div class="activity-item">
+                            <div class="activity-dot" style="background: var(--accent-green);"></div>
+                            <div>
+                                <div class="activity-text"><strong>System online</strong> — Awaiting first report</div>
+                                <div class="activity-time">Just now</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ISSUE_EMOJI = {
+            pothole: '🕳️', graffiti: '🎨', trash: '🗑️', noise: '🔊',
+            broken_light: '💡', flooding: '🌊', sidewalk: '🚶', parking: '🅿️',
+            rodent: '🐀', tree: '🌳', other: '📋'
+        };
+
+        const BAR_COLORS = [
+            'fill-blue', 'fill-green', 'fill-yellow', 'fill-red',
+            'fill-purple', 'fill-cyan'
+        ];
+
+        let lastTicketCount = 0;
+
+        async function fetchData() {
+            try {
+                const [ticketsRes, statsRes] = await Promise.all([
+                    fetch('/api/tickets'),
+                    fetch('/api/stats')
+                ]);
+                const tickets = await ticketsRes.json();
+                const stats = await statsRes.json();
+                updateDashboard(tickets, stats);
+            } catch (e) {
+                // Server not ready yet
+            }
+        }
+
+        function updateDashboard(tickets, stats) {
+            // Stats
+            animateNumber('stat-total', stats.total);
+            animateNumber('stat-open', stats.open);
+            animateNumber('stat-high', stats.high_priority);
+            document.getElementById('feed-count').textContent = `${stats.total} cases`;
+
+            // Ticket list
+            const list = document.getElementById('ticket-list');
+            const empty = document.getElementById('empty-state');
+
+            if (tickets.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            // Only update if new tickets arrived
+            if (tickets.length !== lastTicketCount) {
+                list.innerHTML = '';
+                // Reverse to show newest first
+                [...tickets].reverse().forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = 'ticket-card';
+                    const emoji = ISSUE_EMOJI[t.type] || '📋';
+                    const time = t.created_at ? new Date(t.created_at).toLocaleTimeString() : 'now';
+                    card.innerHTML = `
+                        <div class="ticket-top">
+                            <span class="ticket-id">${t.case_id}</span>
+                            <span class="urgency-badge urgency-${t.urgency}">${t.urgency}</span>
+                        </div>
+                        <div class="ticket-summary">${emoji} ${t.summary}</div>
+                        <div class="ticket-meta">
+                            <span>📍 ${t.location}</span>
+                            <span>🏢 ${t.department}</span>
+                            <span>🕐 ${time}</span>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+
+                // Update activity log for new tickets
+                if (tickets.length > lastTicketCount) {
+                    const newest = tickets[tickets.length - 1];
+                    addActivity(newest);
+                }
+
+                lastTicketCount = tickets.length;
+            }
+
+            // Issue bars
+            updateIssueBars(stats.by_type);
+        }
+
+        function animateNumber(id, target) {
+            const el = document.getElementById(id);
+            const current = parseInt(el.textContent) || 0;
+            if (current === target) return;
+            el.textContent = target;
+            el.style.transform = 'scale(1.15)';
+            setTimeout(() => el.style.transform = 'scale(1)', 200);
+        }
+
+        function updateIssueBars(byType) {
+            const container = document.getElementById('issue-bars');
+            const entries = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+            if (entries.length === 0) return;
+
+            const max = entries[0][1];
+            container.innerHTML = '';
+
+            entries.forEach(([type, count], i) => {
+                const pct = (count / max * 100).toFixed(0);
+                const color = BAR_COLORS[i % BAR_COLORS.length];
+                const emoji = ISSUE_EMOJI[type] || '📋';
+                container.innerHTML += `
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">
+                            <span>${emoji} ${type.replace('_', ' ')}</span>
+                            <span>${count}</span>
+                        </div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill ${color}" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function addActivity(ticket) {
+            const log = document.getElementById('activity-log');
+            const urgColors = {
+                high: 'var(--accent-red)',
+                medium: 'var(--accent-yellow)',
+                low: 'var(--accent-green)'
+            };
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.style.animation = 'slideIn 0.4s ease';
+            item.innerHTML = `
+                <div class="activity-dot" style="background: ${urgColors[ticket.urgency] || 'var(--accent-blue)'};"></div>
+                <div>
+                    <div class="activity-text">
+                        <strong>${ticket.case_id}</strong> — ${ticket.summary.substring(0, 50)}
+                    </div>
+                    <div class="activity-time">via ${ticket.channel} · ${ticket.urgency} priority</div>
+                </div>
+            `;
+            log.prepend(item);
+            // Keep only last 10
+            while (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Poll every 2 seconds
+        setInterval(fetchData, 2000);
+        fetchData();
+    </script>
+</body>
+</html>
